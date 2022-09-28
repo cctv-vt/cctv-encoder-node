@@ -1,0 +1,8 @@
+*.mp4
+video-input/*.mp4
+video-output/*.mp4
+video-failed/*.mp4
+
+node_modules
+logs
+queue.json
