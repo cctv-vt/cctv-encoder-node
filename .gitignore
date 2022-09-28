@@ -6,3 +6,5 @@ video-failed/*.mp4
 node_modules
 logs
 queue.json
+
+ts-built
