@@ -105,7 +105,6 @@ chok.watch('./video-input').on('add', (path: string) => {
 	logger.info(`Watch: ${path} has been seen in the watch folder`);
 	if (/^.*\.mp4$/.test(path)) {
 		// If the file matches the mp4 rejex try to add it to the queue
-		console.log(encodeQueue.print().includes(path));
 		if (encodeQueue.print().includes(path)) {
 			// If the file is in the queue already it will not be added again
 			logger.warn(`Watch: ${path} is already in the queue, ignoring`);
@@ -139,10 +138,7 @@ const tryEncode = () => {
 			if (err) {
 				// If ffmpeg fails to open the file the error will be printed to the console,
 				// and the program will continue
-				console.log('error');
-				console.log(err);
-				console.log(video);
-				logger.error(`Error: error opening ${currentFile} with ffmpeg`);
+				logger.error(`Error: error opening ${currentFile} with ffmpeg, moving to failed directory`);
 				tryEncode();
 			} else {
 				// Encode the file
@@ -154,8 +150,8 @@ const tryEncode = () => {
 					// TODO: add an option for the output directory to the config file
 					.save(`video-output/${currentFileName}`, (err, file: string) => {
 						if (err) {
+							logger.error('Encoder: Encountered an error while saving encoded file');
 							logger.error(err);
-							console.log(err);
 						} else {
 							logger.info(`Encoder: encoded file: ${file}`);
 							unlink(currentFile, () => { // Delete the oold file after the encode complets succesfully
@@ -192,3 +188,5 @@ const gcsUpload = (file: string) => {
 	// TODO: Implement Google Cloud Storage Upload
 	logger.warn(`GCS Upload: Not Implemented (${file})`);
 };
+
+// TODO: Implement api
