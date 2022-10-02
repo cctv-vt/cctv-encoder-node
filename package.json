@@ -10,8 +10,8 @@
   "author": "Luna Z",
   "license": "ISC",
   "dependencies": {
+    "@types/fluent-ffmpeg": "^2.1.20",
     "chokidar": "^3.5.3",
-    "ffmpeg": "^0.0.4",
     "fluent-ffmpeg": "^2.1.2",
     "winston": "^3.8.2"
   },
