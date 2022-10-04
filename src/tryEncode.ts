@@ -1,17 +1,18 @@
 import fluent from 'fluent-ffmpeg';
 import {unlink} from 'fs';
-import {encodeQueue, logger} from './index';
+import type {Queue} from './Queue';
+import {logger} from './logger';
 
 export let emptyQueue: boolean;
 
-export function tryEncode(): void {
+export function tryEncode(queue: Queue): void {
 	// The function waits for this many milliseconds
 	// before re checking the queue if it is empty
 	const ms = 500;
-	if (encodeQueue.print().length) {
+	if (queue.print().length) {
 		// If the queue has any files in it try to encode them
 		emptyQueue = false;
-		const currentFile: string = encodeQueue.recieve();
+		const currentFile: string = queue.recieve();
 		const currentFileName: string = currentFile.split('/')[1];
 		logger.info(`Encoder: found ${currentFile} at front of queue`);
 		fluent(currentFile)
@@ -31,7 +32,7 @@ export function tryEncode(): void {
 					logger.info(`Encoder: removed file ${currentFile}`);
 				});
 				// Rerun function
-				tryEncode();
+				tryEncode(queue);
 			})
 			.save(`video-output/${currentFileName}`);
 	} else {
@@ -46,7 +47,7 @@ export function tryEncode(): void {
 		logger.verbose(`Encoder: nothing in queue, retrying in ${ms}ms`);
 		setTimeout(() => {
 			// Waiting period (ms) to avoid blocking
-			tryEncode();
+			tryEncode(queue);
 		}, ms);
 	}
 }

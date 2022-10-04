@@ -1,12 +1,13 @@
-import { writeFile, writeFileSync, readFileSync, existsSync } from 'fs';
-import { logger } from './index';
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import {writeFile, writeFileSync, readFileSync, existsSync} from 'fs';
+import {logger} from './logger';
 
 // ANCHOR: Queue
 // Queue Data structure definition
 export class Queue {
 	q: string[];
 	file: string;
-	constructor(options: { file: string; }) {
+	constructor(options: {file: string}) {
 		// The Queue class contains the contents of the queue and one option
 		// specifying the file to save the queue to on the disk
 		this.q = [];
