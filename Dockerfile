@@ -7,7 +7,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 
 COPY . .
 
-RUN mkdir /app/video-failed /app/video-input /app/video-output
+RUN mkdir -p /app/video-failed /app/video-input /app/video-output
 
 RUN ln -s /app/video-failed /video-failed
 
