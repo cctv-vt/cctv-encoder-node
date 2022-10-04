@@ -7,4 +7,4 @@ node_modules
 logs
 queue.json
 
-ts-built
+build
