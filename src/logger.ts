@@ -15,7 +15,7 @@ export const logger = createLogger({
 		// Write all logs with importance level of `info` or less to `combined.log`
 		//
 		new winston.transports.File({filename: 'logs/error.log', level: 'error'}),
-		new winston.transports.File({filename: `logs/${new Date().getFullYear()}-${new Date().getMonth()}-combined.log`, format: combine(
+		new winston.transports.File({filename: `logs/${new Date().getFullYear()}-${new Date().getMonth() + 1}-combined.log`, format: combine(
 			timestamp(),
 			textLogFormat,
 		)}),
