@@ -1,7 +1,7 @@
 *.mp4
-video-input/*.mp4
-video-output/*.mp4
-video-failed/*.mp4
+video-input/*
+video-output/*
+video-failed/*
 
 node_modules
 logs
