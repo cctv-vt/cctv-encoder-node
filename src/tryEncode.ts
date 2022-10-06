@@ -49,17 +49,35 @@ export function tryEncode(queue: Queue): void {
 				fluent(currentFile)
 					.screenshots({
 						timestamps: ['0.1%', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%'],
-						filename: `video-output/${currentFileName}/${currentFileName}.%i.png`,
+						filename: `video-output/${currentFileName}/${currentFileName}.%i.jpg`,
 					})
-					.on('end', () => {
+					.on('end', tn => {
 						logger.info(`Encoder: Pulled thumbnails for ${currentFileName}`);
+						console.log(tn);
 						resolve();
 					});
 			} catch (error: unknown) {
 				reject(error);
 			}
 		});
-		Promise.all([videoEncode, thumbnailEncode]).then(() => {
+		const thumbnailEncodeSmall = new Promise<void>((resolve, reject) => {
+			try {
+				fluent(currentFile)
+					.screenshots({
+						size: '160x90',
+						timestamps: ['0.1%', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%'],
+						filename: `video-output/${currentFileName}/${currentFileName}.%i.tn.jpg`,
+					})
+					.on('end', tn => {
+						logger.info(`Encoder: Pulled thumbnails for ${currentFileName}`);
+						console.log(tn);
+						resolve();
+					});
+			} catch (error: unknown) {
+				reject(error);
+			}
+		});
+		Promise.all([videoEncode, thumbnailEncode, thumbnailEncodeSmall]).then(() => {
 			logger.info(`Encoder: all ffmpeg processes for ${currentFileName} have completed`);
 			unlink(currentFile, () => {
 				logger.info(`Encoder: removed file ${currentFile}`);
