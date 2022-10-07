@@ -1,11 +1,15 @@
-import fluent from 'fluent-ffmpeg';
-import {unlink} from 'fs';
+import type {FfprobeData} from 'fluent-ffmpeg';
+import fluent, {Codec} from 'fluent-ffmpeg';
+import {existsSync, mkdirSync, unlink} from 'fs';
 import type {Queue} from './Queue';
 import {logger} from './logger';
+import type {ApiCurrentEncode} from './api';
+import {resolve} from 'path';
 
-export let emptyQueue: boolean;
+let emptyQueue: boolean;
 
-export function tryEncode(queue: Queue): void {
+// This should run forever
+export function tryEncode(queue: Queue, currentEncode: ApiCurrentEncode): void {
 	// The function waits for this many milliseconds
 	// before re checking the queue if it is empty
 	const ms = 500;
@@ -13,28 +17,98 @@ export function tryEncode(queue: Queue): void {
 		// If the queue has any files in it try to encode them
 		emptyQueue = false;
 		const currentFile: string = queue.recieve();
-		const currentFileName: string = currentFile.split('/')[1];
+		const currentFileName: string = currentFile
+			.split('/')[1]
+			.split('.')[0];
 		logger.info(`Encoder: found ${currentFile} at front of queue`);
-		fluent(currentFile)
-			.native()
-			.size('?x720')
-			.on('codecData', data => {
-				console.log(data);
-				// eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-				logger.info(`Encoder: input file is ${data.video} at resolution ${data.video_details[2]}`);
-			})
-			.on('start', (command: string) => {
-				logger.info(`Encoder: ffmpeg started with the command: ${command}`);
-			})
-			.on('end', () => {
-				logger.info(`Encoder: successfuly encoded ${currentFileName}`);
-				unlink(currentFile, () => {
-					logger.info(`Encoder: removed file ${currentFile}`);
+		if (!existsSync(`video-output/${currentFileName}/`)) {
+			mkdirSync(`video-output/${currentFileName}/`);
+		}
+
+		const videoData = new Promise<void>((resolve, reject) => {
+			currentEncode.filename = currentFileName;
+			fluent(currentFile)
+				.ffprobe((err, data: FfprobeData) => {
+					if (err) {
+						reject(err);
+					}
+
+					console.dir(data);
+					currentEncode.inputDuration = data.streams[0].duration;
+					currentEncode.inputFramerate = (data.streams[0].avg_frame_rate);
+					currentEncode.inputResolution = `${data.streams[0].width}x${data.streams[0].height}`;
+					currentEncode.inputBitrate = (parseInt(data.streams[0].bit_rate, 10) / 10).toString();
+					resolve();
 				});
-				// Rerun function
-				tryEncode(queue);
-			})
-			.save(`video-output/${currentFileName}`);
+		});
+
+		const videoEncode = new Promise<void>((resolve, reject) => {
+			try {
+				fluent(currentFile)
+					.native()
+					.size('?x720')
+					.videoBitrate(1000)
+					.on('start', (command: string) => {
+						logger.info(`Encoder: ffmpeg started with the command: ${command}`);
+					})
+					.on('end', () => {
+						logger.info(`Encoder: successfuly encoded ${currentFileName}.broadband.mp4`);
+						resolve();
+					})
+					.save(`video-output/${currentFileName}/${currentFileName}.broadband.mp4`);
+			} catch (error: unknown) {
+				reject(error);
+			}
+		});
+		const thumbnailEncode = new Promise<void>((resolve, reject) => {
+			try {
+				fluent(currentFile)
+					.screenshots({
+						timestamps: ['0.1%', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%'],
+						filename: `video-output/${currentFileName}/${currentFileName}.%i.jpg`,
+					})
+					.on('end', tn => {
+						logger.info(`Encoder: Pulled thumbnails for ${currentFileName}`);
+						console.log(tn);
+						resolve();
+					});
+			} catch (error: unknown) {
+				reject(error);
+			}
+		});
+		const thumbnailEncodeSmall = new Promise<void>((resolve, reject) => {
+			try {
+				fluent(currentFile)
+					.screenshots({
+						size: '160x90',
+						timestamps: ['0.1%', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%'],
+						filename: `video-output/${currentFileName}/${currentFileName}.%i.tn.jpg`,
+					})
+					.on('end', tn => {
+						logger.info(`Encoder: Pulled thumbnails for ${currentFileName}`);
+						console.log(tn);
+						resolve();
+					});
+			} catch (error: unknown) {
+				reject(error);
+			}
+		});
+		Promise.all([videoData, videoEncode, thumbnailEncode, thumbnailEncodeSmall]).then(() => {
+			currentEncode.clear();
+			logger.info(`Encoder: all ffmpeg processes for ${currentFileName} have completed`);
+			unlink(currentFile, () => {
+				logger.info(`Encoder: removed file ${currentFile}`);
+			});
+			tryEncode(queue, currentEncode);
+		}).catch((reason: Error) => {
+			console.log(reason);
+			logger.error('Encoder: video encode failed');
+		}).catch((reason: Error) => {
+			console.log(reason);
+			logger.error('Encoder: thumbnail encode failed');
+		}).finally(() => {
+			tryEncode(queue, currentEncode);
+		});
 	} else {
 		// If the queue is empty, wait (ms) milliseconds and retry
 		if (!emptyQueue) {
@@ -47,7 +121,7 @@ export function tryEncode(queue: Queue): void {
 		logger.verbose(`Encoder: nothing in queue, retrying in ${ms}ms`);
 		setTimeout(() => {
 			// Waiting period (ms) to avoid blocking
-			tryEncode(queue);
+			tryEncode(queue, currentEncode);
 		}, ms);
 	}
 }
