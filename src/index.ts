@@ -3,8 +3,11 @@ import chok from 'chokidar';
 import {tryEncode} from './tryEncode';
 import {Queue} from './Queue';
 import {logger} from './logger';
+import {ApiCurrentEncode, initializeApi} from './api';
 
 const encodeQueue: Queue = new Queue({file: './queue.json'});
+
+const currentEncode = new ApiCurrentEncode();
 
 // Setup for the watch folder
 // TODO: add an option for the input directory to the config file
@@ -29,7 +32,7 @@ chok.watch('./video-input').on('add', (path: string) => {
 // ANCHOR: Encode
 
 // Attempts to run encoder function on queue
-tryEncode(encodeQueue);
+tryEncode(encodeQueue, currentEncode);
 
 // ANCHOR: Upload
 
@@ -41,3 +44,5 @@ const gcsUpload = (file: string) => {
 };
 
 // TODO: Implement api
+
+initializeApi(currentEncode, encodeQueue);

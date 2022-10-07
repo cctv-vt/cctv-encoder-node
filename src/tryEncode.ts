@@ -1,12 +1,15 @@
-import fluent from 'fluent-ffmpeg';
+import type {FfprobeData} from 'fluent-ffmpeg';
+import fluent, {Codec} from 'fluent-ffmpeg';
 import {existsSync, mkdirSync, unlink} from 'fs';
 import type {Queue} from './Queue';
 import {logger} from './logger';
+import type {ApiCurrentEncode} from './api';
+import {resolve} from 'path';
 
 let emptyQueue: boolean;
 
 // This should run forever
-export function tryEncode(queue: Queue): void {
+export function tryEncode(queue: Queue, currentEncode: ApiCurrentEncode): void {
 	// The function waits for this many milliseconds
 	// before re checking the queue if it is empty
 	const ms = 500;
@@ -22,16 +25,29 @@ export function tryEncode(queue: Queue): void {
 			mkdirSync(`video-output/${currentFileName}/`);
 		}
 
+		const videoData = new Promise<void>((resolve, reject) => {
+			currentEncode.filename = currentFileName;
+			fluent(currentFile)
+				.ffprobe((err, data: FfprobeData) => {
+					if (err) {
+						reject(err);
+					}
+
+					console.dir(data);
+					currentEncode.inputDuration = data.streams[0].duration;
+					currentEncode.inputFramerate = (data.streams[0].avg_frame_rate);
+					currentEncode.inputResolution = `${data.streams[0].width}x${data.streams[0].height}`;
+					currentEncode.inputBitrate = (parseInt(data.streams[0].bit_rate, 10) / 10).toString();
+					resolve();
+				});
+		});
+
 		const videoEncode = new Promise<void>((resolve, reject) => {
 			try {
 				fluent(currentFile)
 					.native()
 					.size('?x720')
-					.on('codecData', data => {
-						console.log(data);
-						// eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-						logger.info(`Encoder: input file is ${data.video} at resolution ${data.video_details[2]}`);
-					})
+					.videoBitrate(1000)
 					.on('start', (command: string) => {
 						logger.info(`Encoder: ffmpeg started with the command: ${command}`);
 					})
@@ -77,12 +93,13 @@ export function tryEncode(queue: Queue): void {
 				reject(error);
 			}
 		});
-		Promise.all([videoEncode, thumbnailEncode, thumbnailEncodeSmall]).then(() => {
+		Promise.all([videoData, videoEncode, thumbnailEncode, thumbnailEncodeSmall]).then(() => {
+			currentEncode.clear();
 			logger.info(`Encoder: all ffmpeg processes for ${currentFileName} have completed`);
 			unlink(currentFile, () => {
 				logger.info(`Encoder: removed file ${currentFile}`);
 			});
-			tryEncode(queue);
+			tryEncode(queue, currentEncode);
 		}).catch((reason: Error) => {
 			console.log(reason);
 			logger.error('Encoder: video encode failed');
@@ -90,7 +107,7 @@ export function tryEncode(queue: Queue): void {
 			console.log(reason);
 			logger.error('Encoder: thumbnail encode failed');
 		}).finally(() => {
-			tryEncode(queue);
+			tryEncode(queue, currentEncode);
 		});
 	} else {
 		// If the queue is empty, wait (ms) milliseconds and retry
@@ -104,7 +121,7 @@ export function tryEncode(queue: Queue): void {
 		logger.verbose(`Encoder: nothing in queue, retrying in ${ms}ms`);
 		setTimeout(() => {
 			// Waiting period (ms) to avoid blocking
-			tryEncode(queue);
+			tryEncode(queue, currentEncode);
 		}, ms);
 	}
 }
