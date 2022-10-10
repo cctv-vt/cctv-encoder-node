@@ -2,10 +2,20 @@
 import {writeFile, writeFileSync, readFileSync, existsSync} from 'fs';
 import {logger} from './logger';
 
-// ANCHOR: Queue
+export type VideoFile = {
+	location: string;
+	programName: string;
+	date?: Date;
+	bitrate?: string;
+	resolution?: [string, string];
+	framerate?: string;
+	duration?: string;
+};
+
+// ANCHOR: Queue Class
 // Queue Data structure definition
 export class Queue {
-	q: string[];
+	q: VideoFile[];
 	file: string;
 	constructor(options: {file: string}) {
 		// The Queue class contains the contents of the queue and one option
@@ -37,22 +47,30 @@ export class Queue {
 		}
 	}
 
-	add(item: string) {
+	add(item: VideoFile) {
 		// Adds an item to the queue
 		this.q.push(item);
 		this.updateFile();
 	}
 
-	recieve(): string {
+	recieve(): VideoFile {
 		// Reemoves an item from the top of the queue and removes the entry
-		const current: string = this.q.shift() || '';
+		const current: VideoFile = this.q.shift() || undefined;
 		this.updateFile();
 		return current;
 	}
 
-	print(): string[] {
+	print(): VideoFile[] {
 		// Prints the full conents of the queue (array of strings)
 		return this.q;
+	}
+
+	printPaths(): string[] {
+		const paths: string[] = [];
+		this.q.forEach(val => {
+			paths.push(val.location);
+		});
+		return paths;
 	}
 
 	updateFile() {

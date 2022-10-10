@@ -1,6 +1,6 @@
 import express from 'express';
 import {logger} from './logger';
-import type {Queue} from './Queue';
+import type {Queue, VideoFile} from './Queue';
 
 const app: express.Application = express();
 
@@ -9,40 +9,31 @@ export const updateApi = () => {
 };
 
 export class ApiCurrentEncode {
-	filename = '';
-	inputResolution = '';
-	inputFramerate = '';
-	inputDuration = '';
-	inputBitrate = '';
+	vid: VideoFile;
 
-	// C update({filename = '', inputResolution = '', inpu}) {
-	// 	// Fill
-	// }
-
-	clear() {
-		this.filename = '';
-		this.inputResolution = '';
-		this.inputFramerate = '';
-		this.inputDuration = '';
-		this.inputBitrate = '';
+	constructor(videoFile: VideoFile) {
+		this.vid = videoFile;
 	}
 
-	read() {
-		return {
-			filename: this.filename,
-			inputResolution: this.inputResolution,
-			inputFramerate: this.inputFramerate,
-			inputDuration: this.inputDuration,
-			inputBitrate: this.inputBitrate,
+	update(videoFile: VideoFile) {
+		this.vid = videoFile;
+	}
+
+	clear() {
+		this.vid = {
+			location: '',
+			programName: '',
 		};
+	}
+
+	read(): VideoFile {
+		return this.vid;
 	}
 }
 
 export const initializeApi = (currentEncode: ApiCurrentEncode, queue: Queue) => {
 	app.get('/api/current', (_req, res) => {
-		res.send(
-			currentEncode.read(),
-		);
+		res.send(currentEncode.read());
 	});
 
 	app.get('/api/queue', (_req, res) => {

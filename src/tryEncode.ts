@@ -1,10 +1,9 @@
 import type {FfprobeData} from 'fluent-ffmpeg';
 import fluent, {Codec} from 'fluent-ffmpeg';
 import {existsSync, mkdirSync, unlink} from 'fs';
-import type {Queue} from './Queue';
+import type {Queue, VideoFile} from './Queue';
 import {logger} from './logger';
 import type {ApiCurrentEncode} from './api';
-import {resolve} from 'path';
 
 let emptyQueue: boolean;
 
@@ -16,35 +15,16 @@ export function tryEncode(queue: Queue, currentEncode: ApiCurrentEncode): void {
 	if (queue.print().length) {
 		// If the queue has any files in it try to encode them
 		emptyQueue = false;
-		const currentFile: string = queue.recieve();
-		const currentFileName: string = currentFile
-			.split('/')[1]
-			.split('.')[0];
-		logger.info(`Encoder: found ${currentFile} at front of queue`);
-		if (!existsSync(`video-output/${currentFileName}/`)) {
-			mkdirSync(`video-output/${currentFileName}/`);
+		const currentFile: VideoFile = queue.recieve();
+		currentEncode.update(currentFile);
+		logger.info(`Encoder: found ${currentFile.location} at front of queue`);
+		if (!existsSync(`video-output/${currentFile.programName}/`)) {
+			mkdirSync(`video-output/${currentFile.programName}/`);
 		}
-
-		const videoData = new Promise<void>((resolve, reject) => {
-			currentEncode.filename = currentFileName;
-			fluent(currentFile)
-				.ffprobe((err, data: FfprobeData) => {
-					if (err) {
-						reject(err);
-					}
-
-					console.dir(data);
-					currentEncode.inputDuration = data.streams[0].duration;
-					currentEncode.inputFramerate = (data.streams[0].avg_frame_rate);
-					currentEncode.inputResolution = `${data.streams[0].width}x${data.streams[0].height}`;
-					currentEncode.inputBitrate = (parseInt(data.streams[0].bit_rate, 10) / 10).toString();
-					resolve();
-				});
-		});
 
 		const videoEncode = new Promise<void>((resolve, reject) => {
 			try {
-				fluent(currentFile)
+				fluent(currentFile.location)
 					.native()
 					.size('?x720')
 					.videoBitrate(1000)
@@ -52,23 +32,23 @@ export function tryEncode(queue: Queue, currentEncode: ApiCurrentEncode): void {
 						logger.info(`Encoder: ffmpeg started with the command: ${command}`);
 					})
 					.on('end', () => {
-						logger.info(`Encoder: successfuly encoded ${currentFileName}.broadband.mp4`);
+						logger.info(`Encoder: successfuly encoded ${currentFile.programName}.broadband.mp4`);
 						resolve();
 					})
-					.save(`video-output/${currentFileName}/${currentFileName}.broadband.mp4`);
+					.save(`video-output/${currentFile.programName}/${currentFile.programName}.broadband.mp4`);
 			} catch (error: unknown) {
 				reject(error);
 			}
 		});
 		const thumbnailEncode = new Promise<void>((resolve, reject) => {
 			try {
-				fluent(currentFile)
+				fluent(currentFile.location)
 					.screenshots({
 						timestamps: ['0.1%', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%'],
-						filename: `video-output/${currentFileName}/${currentFileName}.%i.jpg`,
+						filename: `video-output/${currentFile.programName}/${currentFile.programName}.%i.jpg`,
 					})
 					.on('end', tn => {
-						logger.info(`Encoder: Pulled thumbnails for ${currentFileName}`);
+						logger.info(`Encoder: Pulled thumbnails for ${currentFile.programName}`);
 						console.log(tn);
 						resolve();
 					});
@@ -78,14 +58,14 @@ export function tryEncode(queue: Queue, currentEncode: ApiCurrentEncode): void {
 		});
 		const thumbnailEncodeSmall = new Promise<void>((resolve, reject) => {
 			try {
-				fluent(currentFile)
+				fluent(currentFile.location)
 					.screenshots({
 						size: '160x90',
 						timestamps: ['0.1%', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%'],
-						filename: `video-output/${currentFileName}/${currentFileName}.%i.tn.jpg`,
+						filename: `video-output/${currentFile.programName}/${currentFile.programName}.%i.tn.jpg`,
 					})
 					.on('end', tn => {
-						logger.info(`Encoder: Pulled thumbnails for ${currentFileName}`);
+						logger.info(`Encoder: Pulled thumbnails for ${currentFile.programName}`);
 						console.log(tn);
 						resolve();
 					});
@@ -93,11 +73,11 @@ export function tryEncode(queue: Queue, currentEncode: ApiCurrentEncode): void {
 				reject(error);
 			}
 		});
-		Promise.all([videoData, videoEncode, thumbnailEncode, thumbnailEncodeSmall]).then(() => {
+		Promise.all([videoEncode, thumbnailEncode, thumbnailEncodeSmall]).then(() => {
 			currentEncode.clear();
-			logger.info(`Encoder: all ffmpeg processes for ${currentFileName} have completed`);
-			unlink(currentFile, () => {
-				logger.info(`Encoder: removed file ${currentFile}`);
+			logger.info(`Encoder: all ffmpeg processes for ${currentFile.programName} have completed`);
+			unlink(currentFile.location, () => {
+				logger.info(`Encoder: removed file ${currentFile.location}`);
 			});
 			tryEncode(queue, currentEncode);
 		}).catch((reason: Error) => {
