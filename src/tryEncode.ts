@@ -5,16 +5,8 @@ import type {Queue, VideoFile} from './Queue';
 import {logger} from './logger';
 import type {ApiCurrentEncode} from './api';
 
-let emptyQueue: boolean;
-
 // This should run forever
-export function tryEncode(queue: Queue, currentEncode: ApiCurrentEncode): void {
-	// The function waits for this many milliseconds
-	// before re checking the queue if it is empty
-	const ms = 500;
-	if (queue.print().length) {
-		// If the queue has any files in it try to encode them
-		emptyQueue = false;
+export function tryEncode(queue: Queue, currentEncode: ApiCurrentEncode, callback): void {
 		const currentFile: VideoFile = queue.recieve();
 		currentEncode.update(currentFile);
 		logger.info(`Encoder: found ${currentFile.location} at front of queue`);
@@ -79,7 +71,7 @@ export function tryEncode(queue: Queue, currentEncode: ApiCurrentEncode): void {
 			unlink(currentFile.location, () => {
 				logger.info(`Encoder: removed file ${currentFile.location}`);
 			});
-			tryEncode(queue, currentEncode);
+			//tryEncode(queue, currentEncode);
 		}).catch((reason: Error) => {
 			console.log(reason);
 			logger.error('Encoder: video encode failed');
@@ -87,21 +79,8 @@ export function tryEncode(queue: Queue, currentEncode: ApiCurrentEncode): void {
 			console.log(reason);
 			logger.error('Encoder: thumbnail encode failed');
 		}).finally(() => {
-			tryEncode(queue, currentEncode);
+			//tryEncode(queue, currentEncode);
+			callback();
 		});
-	} else {
-		// If the queue is empty, wait (ms) milliseconds and retry
-		if (!emptyQueue) {
-			// If the queue was empty last time the function was run it will not log 'nothing in queue'
-			// to keep the logs clean/readable
-			logger.info('Encoder: nothing in queue');
-			emptyQueue = true;
-		}
-
-		logger.verbose(`Encoder: nothing in queue, retrying in ${ms}ms`);
-		setTimeout(() => {
-			// Waiting period (ms) to avoid blocking
-			tryEncode(queue, currentEncode);
-		}, ms);
-	}
+	
 }
