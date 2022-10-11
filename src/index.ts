@@ -40,7 +40,38 @@ chok.watch('./video-input').on('add', (path: string) => {
 // ANCHOR: Encode
 
 // Attempts to run encoder function on queue
-tryEncode(encodeQueue, currentEncode);
+// tryEncode(encodeQueue, currentEncode);
+
+// The function waits for this many milliseconds
+// before re checking the queue if it is empty
+let emptyQueue: boolean;
+const ms = 500;
+
+const encode = () => {
+	if (encodeQueue.print().length) {
+	// If the queue has any files in it try to encode them
+		emptyQueue = false;
+		tryEncode(encodeQueue, currentEncode, () => {
+			encode();
+		});
+	} else {
+		// If the queue is empty, wait (ms) milliseconds and retry
+		if (!emptyQueue) {
+			// If the queue was empty last time the function was run it will not log 'nothing in queue'
+			// to keep the logs clean/readable
+			logger.info('Encoder: nothing in queue');
+			emptyQueue = true;
+		}
+
+		logger.verbose(`Encoder: nothing in queue, retrying in ${ms}ms`);
+		setTimeout(() => {
+			// Waiting period (ms) to avoid blocking
+			encode();
+		}, ms);
+	}
+};
+
+encode();
 
 // ANCHOR: Upload
 
