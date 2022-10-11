@@ -28,7 +28,8 @@ chok.watch('./video-input').on('add', (path: string) => {
 				console.log('tada');
 				encodeQueue.add(videoFile);
 				logger.info(`Watch: ${path} has been added to the queue`);
-			}).catch((err: Error) => logger.error(`Watch: ${err.message}`));
+			}).catch((err: Error) => logger.warn(`Watch: ${err.message}`));
+			// TODO: Move file to rejected folder
 		}
 	} else {
 		// If the file is not an mp4 it will be ignored
@@ -50,6 +51,6 @@ const gcsUpload = (file: string) => {
 	// Remove Files from local disk after upload is successful
 };
 
-// TODO: Implement api
+// ANCHOR: API
 
 initializeApi(currentEncode, encodeQueue);
