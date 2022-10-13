@@ -36,7 +36,7 @@ export function tryEncode(queue: Queue, currentEncode: ApiVideo, callback: (file
 		try {
 			fluent(currentFile.location)
 				.screenshots({
-					timestamps: ['0.1%', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%'],
+					timestamps: ['0.1%', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '99.5%'],
 					filename: `video-output/${currentFile.programName}/${currentFile.programName}.%i.jpg`,
 				})
 				.on('end', tn => {
@@ -53,7 +53,7 @@ export function tryEncode(queue: Queue, currentEncode: ApiVideo, callback: (file
 			fluent(currentFile.location)
 				.screenshots({
 					size: '160x90',
-					timestamps: ['0.1%', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%'],
+					timestamps: ['0.1%', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '99.5%'],
 					filename: `video-output/${currentFile.programName}/${currentFile.programName}.%i.tn.jpg`,
 				})
 				.on('end', tn => {
