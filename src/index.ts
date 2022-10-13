@@ -3,12 +3,18 @@ import chok from 'chokidar';
 import {tryEncode} from './tryEncode';
 import {Queue} from './Queue';
 import {logger} from './logger';
-import {ApiCurrentEncode, initializeApi} from './api';
+import {ApiVideo, initializeApi} from './api';
 import {processFile} from './processFile';
+import {uploadFolder} from './gcsUpload';
 
 const encodeQueue: Queue = new Queue({file: './queue.json'});
 
-const currentEncode: ApiCurrentEncode = new ApiCurrentEncode({
+const currentEncode: ApiVideo = new ApiVideo({
+	location: '',
+	programName: '',
+});
+
+const currentUpload: ApiVideo = new ApiVideo({
 	location: '',
 	programName: '',
 });
@@ -51,8 +57,23 @@ const encode = () => {
 	if (encodeQueue.print().length) {
 	// If the queue has any files in it try to encode them
 		emptyQueue = false;
-		tryEncode(encodeQueue, currentEncode, () => {
-			encode();
+		tryEncode(encodeQueue, currentEncode, (video, err) => {
+			if (err) {
+				logger.error(`Encoder: ${err.message}`);
+				encode();
+			} else {
+				console.log(video);
+				uploadFolder(`video-output/${video.programName}`, video, currentUpload)
+					.then((val: string) => {
+						currentUpload.clear();
+						logger.info(`Upload: finished uplooading ${val}`);
+					})
+					.catch((err: Error) => {
+						console.log(err);
+						logger.error(`Upload: ${err.message}`);
+					});
+				encode();
+			}
 		});
 	} else {
 		// If the queue is empty, wait (ms) milliseconds and retry
@@ -73,15 +94,6 @@ const encode = () => {
 
 encode();
 
-// ANCHOR: Upload
-
-const gcsUpload = (file: string) => {
-	// TODO: Implement Google Cloud Storage Upload
-	logger.warn(`GCS Upload: Not Implemented (${file})`);
-	// Upload Files
-	// Remove Files from local disk after upload is successful
-};
-
 // ANCHOR: API
 
-initializeApi(currentEncode, encodeQueue);
+initializeApi(currentEncode, currentUpload, encodeQueue);

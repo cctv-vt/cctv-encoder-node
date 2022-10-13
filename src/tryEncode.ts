@@ -3,10 +3,10 @@ import fluent, {Codec} from 'fluent-ffmpeg';
 import {existsSync, mkdirSync, unlink} from 'fs';
 import type {Queue, VideoFile} from './Queue';
 import {logger} from './logger';
-import type {ApiCurrentEncode} from './api';
+import type {ApiVideo} from './api';
 
 // This should run forever
-export function tryEncode(queue: Queue, currentEncode: ApiCurrentEncode, callback: () => void): void {
+export function tryEncode(queue: Queue, currentEncode: ApiVideo, callback: (file: VideoFile, err: Error) => void): void {
 	const currentFile: VideoFile = queue.recieve();
 	currentEncode.update(currentFile);
 	logger.info(`Encoder: found ${currentFile.location} at front of queue`);
@@ -75,11 +75,9 @@ export function tryEncode(queue: Queue, currentEncode: ApiCurrentEncode, callbac
 	}).catch((reason: Error) => {
 		console.log(reason);
 		logger.error('Encoder: video encode failed');
-	}).catch((reason: Error) => {
-		console.log(reason);
-		logger.error('Encoder: thumbnail encode failed');
+		callback(null, reason);
 	}).finally(() => {
 		// TryEncode(queue, currentEncode);
-		callback();
+		callback(currentFile, null);
 	});
 }
