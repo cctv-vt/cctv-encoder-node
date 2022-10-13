@@ -17,8 +17,20 @@
 			// Add the IDs of extensions you want installed when the container is created.
 			"extensions": [
 				"dbaeumer.vscode-eslint",
-				"ExodiusStudios.comment-anchors"
+				"ExodiusStudios.comment-anchors",
+				"eamodio.gitlens",
+				"ms-azuretools.vscode-docker",
+				"redjue.git-commit-plugin",
+				"GitHub.vscode-pull-request-github"
 			]
+		}
+	},
+
+	"features": {
+		"docker-from-docker": {
+			"version": "latest",
+			"moby": true,
+			"dockerDashComposeVersion": "v1"
 		}
 	},
 
