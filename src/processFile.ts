@@ -24,7 +24,7 @@ export async function processFile(path: string): Promise<VideoFile> {
 				// Construct date using YYYY-MM-D format
 				info.date = new Date(`${year}-${month}-${day}`);
 				if (info.date.getFullYear() < 1980) {
-					reject(new Error(`file ${info.location} returns a date with a year before 1980, rejecting`));
+					throw (new Error(`file ${info.location} returns a date with a year before 1980, rejecting`));
 				} else if (info.date.getFullYear() > (new Date().getFullYear() + 1)) {
 					throw (new Error(`file ${info.location} returns a date with a year before 1980, rejecting`));
 				}
