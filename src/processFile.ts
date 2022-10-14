@@ -15,7 +15,7 @@ export const processFile = async (path: string): Promise<VideoFile> => {
 					programName: path.split('/')[1].split('.')[0],
 					// Program name is derived from the name of the location after the last / and before the first .
 				};
-				const regexp = /^[A-z,-,_]*_F_[0-9]{8}$/;
+				const regexp = /^[A-z,-,_,0-9]*_F_[0-9]{8}$/;
 				if (regexp.test(info.programName)) {
 					// If the program name is valid contruct the date
 					logger.info(`File Data: ${info.location} passed regexp`);
