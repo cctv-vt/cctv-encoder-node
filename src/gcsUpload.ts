@@ -18,6 +18,7 @@ export async function uploadFolder(folder: string, videoFile: VideoFile, current
 		const fileUploads = [];
 		readdirSync(folder).forEach(file => {
 			const fileSize = statSync(`${folder}/${file}`).size;
+			currentUpload.progressUpdate(file, 0);
 			fileUploads.push(new Promise((resolve, reject) => {
 				let destination: string;
 				if (videoFile.date) {
@@ -26,7 +27,7 @@ export async function uploadFolder(folder: string, videoFile: VideoFile, current
 				}
 
 				const onUploadProgress = (ev: any): void => {
-					currentUpload.uploadProgressUpdate(file, ev.bytesWritten / fileSize);
+					currentUpload.progressUpdate(file, ev.bytesWritten / fileSize);
 				};
 
 				const options: UploadOptions = {
@@ -34,7 +35,10 @@ export async function uploadFolder(folder: string, videoFile: VideoFile, current
 					onUploadProgress,
 				};
 				storage.bucket(bucketName).upload(`${folder}/${file}`, options)
-					.then(resolve)
+					.then(val => {
+						currentUpload.progressUpdate(file, 1);
+						resolve(val);
+					})
 					.catch(reject);
 			}));
 		});
