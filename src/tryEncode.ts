@@ -15,6 +15,7 @@ export function tryEncode(queue: Queue, currentEncode: ApiVideo, callback: (file
 	}
 
 	const videoEncode = new Promise<void>((resolve, reject) => {
+		currentEncode.progressUpdate('video', 0);
 		try {
 			fluent(currentFile.location)
 				.native()
@@ -23,8 +24,12 @@ export function tryEncode(queue: Queue, currentEncode: ApiVideo, callback: (file
 				.on('start', (command: string) => {
 					logger.info(`Encoder: ffmpeg started with the command: ${command}`);
 				})
+				.on('progress', progress => {
+					currentEncode.progressUpdate('video', progress.percent / 100);
+				})
 				.on('end', () => {
 					logger.info(`Encoder: successfuly encoded ${currentFile.programName}.broadband.mp4`);
+					currentEncode.progressUpdate('video', 1);
 					resolve();
 				})
 				.save(`video-output/${currentFile.programName}/${currentFile.programName}.broadband.mp4`);
@@ -33,15 +38,19 @@ export function tryEncode(queue: Queue, currentEncode: ApiVideo, callback: (file
 		}
 	});
 	const thumbnailEncode = new Promise<void>((resolve, reject) => {
+		currentEncode.progressUpdate('screenshotsBig', 0);
 		try {
 			fluent(currentFile.location)
 				.screenshots({
 					timestamps: ['0.1%', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '99.5%'],
 					filename: `video-output/${currentFile.programName}/${currentFile.programName}.%i.jpg`,
 				})
+				.on('progress', progress => {
+					currentEncode.progressUpdate('screenshotsBig', progress.percent / 100);
+				})
 				.on('end', tn => {
 					logger.info(`Encoder: Pulled thumbnails for ${currentFile.programName}`);
-					console.log(tn);
+					currentEncode.progressUpdate('screenshotsBig', 1);
 					resolve();
 				});
 		} catch (error: unknown) {
@@ -49,6 +58,7 @@ export function tryEncode(queue: Queue, currentEncode: ApiVideo, callback: (file
 		}
 	});
 	const thumbnailEncodeSmall = new Promise<void>((resolve, reject) => {
+		currentEncode.progressUpdate('screenshotsSmall', 0);
 		try {
 			fluent(currentFile.location)
 				.screenshots({
@@ -56,9 +66,12 @@ export function tryEncode(queue: Queue, currentEncode: ApiVideo, callback: (file
 					timestamps: ['0.1%', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '99.5%'],
 					filename: `video-output/${currentFile.programName}/${currentFile.programName}.%i.tn.jpg`,
 				})
+				.on('progress', progress => {
+					currentEncode.progressUpdate('screenshotsSmall', progress.percent / 100);
+				})
 				.on('end', tn => {
-					logger.info(`Encoder: Pulled thumbnails for ${currentFile.programName}`);
-					console.log(tn);
+					logger.info(`Encoder: Pulled thumbnails (small) for ${currentFile.programName}`);
+					currentEncode.progressUpdate('screenshotsSmall', 1);
 					resolve();
 				});
 		} catch (error: unknown) {
@@ -67,6 +80,7 @@ export function tryEncode(queue: Queue, currentEncode: ApiVideo, callback: (file
 	});
 	Promise.all([videoEncode, thumbnailEncode, thumbnailEncodeSmall]).then(() => {
 		currentEncode.clear();
+		currentEncode.progressClear();
 		logger.info(`Encoder: all ffmpeg processes for ${currentFile.programName} have completed`);
 		unlink(currentFile.location, () => {
 			logger.info(`Encoder: removed file ${currentFile.location}`);
