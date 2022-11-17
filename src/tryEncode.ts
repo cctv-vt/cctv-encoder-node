@@ -4,14 +4,17 @@ import {existsSync, mkdirSync, unlink} from 'fs';
 import type {Queue, VideoFile} from './Queue';
 import {logger} from './logger';
 import type {ApiVideo} from './api';
+import type {ConfigType} from './config';
+import {defaultConfig} from './config';
 
 // This should run forever
-export function tryEncode(queue: Queue, currentEncode: ApiVideo, callback: (file: VideoFile, err: Error) => void): void {
+export function tryEncode(queue: Queue, currentEncode: ApiVideo, config: ConfigType, callback: (file: VideoFile, err: Error) => void): void {
+	const outputFolder = config.watch.outputFolder || defaultConfig.watch.outputFolder;
 	const currentFile: VideoFile = queue.recieve();
 	currentEncode.update(currentFile);
 	logger.info(`Encoder: found ${currentFile.location} at front of queue`);
-	if (!existsSync(`video-output/${currentFile.programName}/`)) {
-		mkdirSync(`video-output/${currentFile.programName}/`);
+	if (!existsSync(`${outputFolder}/${currentFile.programName}/`)) {
+		mkdirSync(`${outputFolder}/${currentFile.programName}/`);
 	}
 
 	const videoEncode = new Promise<void>((resolve, reject) => {
@@ -19,8 +22,8 @@ export function tryEncode(queue: Queue, currentEncode: ApiVideo, callback: (file
 		try {
 			fluent(currentFile.location)
 				.native()
-				.size('?x720')
-				.videoBitrate(1000)
+				.size(config.encode.size || defaultConfig.encode.size)
+				.videoBitrate(config.encode.bitrate || defaultConfig.encode.bitrate)
 				.on('start', (command: string) => {
 					logger.info(`Encoder: ffmpeg started with the command: ${command}`);
 				})
@@ -32,7 +35,7 @@ export function tryEncode(queue: Queue, currentEncode: ApiVideo, callback: (file
 					currentEncode.progressUpdate('video', 1);
 					resolve();
 				})
-				.save(`video-output/${currentFile.programName}/${currentFile.programName}.broadband.mp4`);
+				.save(`${outputFolder}/${currentFile.programName}/${currentFile.programName}.broadband.mp4`);
 		} catch (error: unknown) {
 			reject(error);
 		}
@@ -42,8 +45,8 @@ export function tryEncode(queue: Queue, currentEncode: ApiVideo, callback: (file
 		try {
 			fluent(currentFile.location)
 				.screenshots({
-					timestamps: ['0.1%', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '99.5%'],
-					filename: `video-output/${currentFile.programName}/${currentFile.programName}.%i.jpg`,
+					timestamps: config.encode.thumbnailTimestamps || defaultConfig.encode.thumbnailTimestamps,
+					filename: `${outputFolder}/${currentFile.programName}/${currentFile.programName}.%i.jpg`,
 				})
 				.on('progress', progress => {
 					currentEncode.progressUpdate('screenshotsBig', progress.percent / 100);
@@ -64,7 +67,7 @@ export function tryEncode(queue: Queue, currentEncode: ApiVideo, callback: (file
 				.screenshots({
 					size: '160x90',
 					timestamps: ['0.1%', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '99.5%'],
-					filename: `video-output/${currentFile.programName}/${currentFile.programName}.%i.tn.jpg`,
+					filename: `${outputFolder}/${currentFile.programName}/${currentFile.programName}.%i.tn.jpg`,
 				})
 				.on('progress', progress => {
 					currentEncode.progressUpdate('screenshotsSmall', progress.percent / 100);
@@ -89,7 +92,7 @@ export function tryEncode(queue: Queue, currentEncode: ApiVideo, callback: (file
 	}).catch((reason: Error) => {
 		console.log(reason);
 		logger.error('Encoder: video encode failed');
-		callback(null, reason);
+		callback(currentFile, reason);
 	}).finally(() => {
 		// TryEncode(queue, currentEncode);
 		callback(currentFile, null);

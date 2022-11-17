@@ -5,15 +5,20 @@ import {readdirSync, statSync} from 'fs';
 import type {VideoFile} from './Queue';
 import {logger} from './logger';
 import type {ApiVideo} from './api';
+import type {ConfigType} from './config';
+import {defaultConfig} from './config';
+import {Config} from './config';
 
 // TODO: Add to Config
 // TODO: Dont use this bucket for production!!!
-const bucketName = 'cctv-library-test';
 
-// Creates a client
-const storage = new Storage({keyFilename: 'key.json'});
-
-export async function uploadFolder(folder: string, videoFile: VideoFile, currentUpload: ApiVideo): Promise<unknown> {
+export async function uploadFolder(folder: string, videoFile: VideoFile, currentUpload: ApiVideo, config: ConfigType): Promise<unknown> {
+	// Get Values From config
+	// bucketName is redefined every time allowing for changes during runtime
+	const keyFilename = config.gcsUpload.keyFile || defaultConfig.gcsUpload.keyFile;
+	const bucketName = config.gcsUpload.bucketName || defaultConfig.gcsUpload.bucketName;
+	logger.info(`Upload: Google bucket set to ${bucketName}`);
+	const storage = new Storage({keyFilename});
 	return new Promise((resolve, reject) => {
 		const fileUploads = [];
 		readdirSync(folder).forEach(file => {
@@ -44,7 +49,8 @@ export async function uploadFolder(folder: string, videoFile: VideoFile, current
 		});
 		logger.info(`Upload: Uploading ${fileUploads.length} files from ${videoFile.programName}`);
 		Promise.all(fileUploads)
-			.then(val => {
+			.then(() => {
+				currentUpload.progressClear();
 				resolve(videoFile.programName);
 			})
 			.catch(reject);

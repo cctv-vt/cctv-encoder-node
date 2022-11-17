@@ -7,8 +7,12 @@ import {ApiVideo, initializeApi} from './api';
 import {processFile} from './processFile';
 import {uploadFolder} from './gcsUpload';
 import {rejectFile} from './util';
+import {Config, defaultConfig} from './config';
 
-const encodeQueue: Queue = new Queue({file: './queue.json'});
+const config = new Config().print();
+console.log(config);
+
+const encodeQueue: Queue = new Queue({file: config.queue.file || defaultConfig.queue.file});
 
 const currentEncode: ApiVideo = new ApiVideo({
 	location: '',
@@ -22,7 +26,8 @@ const currentUpload: ApiVideo = new ApiVideo({
 
 // Setup for the watch folder
 // TODO: add an option for the input directory to the config file
-chok.watch('./video-input').on('add', (path: string) => {
+
+chok.watch(config.watch.inputFolder || defaultConfig.watch.inputFolder).on('add', (path: string) => {
 	logger.info(`Watch: ${path} has been seen in the watch folder`);
 	if (/^.*\.mp4$/.test(path)) {
 		// If the file matches the mp4 rejex try to add it to the queue
@@ -38,7 +43,6 @@ chok.watch('./video-input').on('add', (path: string) => {
 				logger.warn(`Watch: ${err.message}`);
 				rejectFile(path, `Rejected by file watcher/data extraction: ${err.message}`);
 			});
-			// TODO: Move file to rejected folder
 		}
 	} else {
 		// If the file is not an mp4 it will be ignored
@@ -57,17 +61,20 @@ chok.watch('./video-input').on('add', (path: string) => {
 let emptyQueue: boolean;
 const ms = 500;
 
+const outputFolder = config.watch.outputFolder || defaultConfig.watch.outputFolder;
+
 const encode = () => {
 	if (encodeQueue.print().length) {
 	// If the queue has any files in it try to encode them
 		emptyQueue = false;
-		tryEncode(encodeQueue, currentEncode, (video, err) => {
+		tryEncode(encodeQueue, currentEncode, config, (video, err) => {
 			if (err) {
+				rejectFile(video.location, `Encode Failed: \n ${JSON.stringify(err)}`);
 				logger.error(`Encoder: ${err.message}`);
 				encode();
 			} else {
 				console.log(video);
-				uploadFolder(`video-output/${video.programName}`, video, currentUpload)
+				uploadFolder(`${outputFolder}/${video.programName}`, video, currentUpload, config)
 					.then((val: string) => {
 						currentUpload.clear();
 						logger.info(`Upload: finished uplooading ${val}`);
