@@ -9,11 +9,15 @@ COPY . .
 
 RUN mkdir -p /app/video-failed /app/video-input /app/video-output
 
-RUN ln -s /app/video-failed /video-failed
+RUN mkdir -p /data
 
-RUN ln -s /app/video-input /video-input
+RUN ln -s /app/video-failed /data/video-failed
 
-RUN ln -s /app/video-output /video-output
+RUN ln -s /app/video-input /data/video-input
+
+RUN ln -s /app/video-output /data/video-output
+
+RUN ln -s /app/conf /data/config
 
 RUN npm install
 
