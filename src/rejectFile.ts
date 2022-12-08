@@ -1,5 +1,6 @@
 import {logger} from './logger';
 import {readdirSync, readFileSync, rename, writeFile} from 'fs';
+import {rm} from 'fs/promises';
 
 const cats: string[] = [];
 
@@ -21,8 +22,16 @@ function randomCat(): string {
 export function rejectFile(path: string, reason = 'No reason given'): void {
 	const inputPath = `video-input/${path.split('/')[1]}`;
 	const outputPath = `video-failed/${path.split('/')[1]}`;
-	rename(inputPath, outputPath, () => {
-		logger.warn(`file ${inputPath} has been moved to ${outputPath}`);
-	});
+	rm(inputPath)
+		.then(() => {
+			logger.warn(`Watch: file ${inputPath} has been removed`);
+		})
+		.catch(err => {
+			logger.error(`Watch: file ${inputPath} has not been removed due to a system error`);
+			logger.error(err);
+		});
+	// Disabled: rename(inputPath, outputPath, () => {
+	// logger.warn(`file ${inputPath} has been moved to ${outputPath}`);
+	// });
 	writeFile(outputPath.split('.')[0] + '.txt', reason + '\n\n' + randomCat(), () => null);
 }

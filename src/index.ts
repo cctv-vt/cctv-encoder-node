@@ -6,7 +6,7 @@ import {logger} from './logger';
 import {ApiVideo, initializeApi} from './api';
 import {processFile} from './processFile';
 import {uploadFolder} from './gcsUpload';
-import {rejectFile} from './util';
+import {rejectFile} from './rejectFile';
 import {Config, defaultConfig} from './config';
 
 const config = new Config().print();
