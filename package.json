@@ -1,6 +1,6 @@
 {
   "name": "cctv-encoder-node",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Web Encoder For CCTV Files",
   "main": "build/index.js",
   "scripts": {
