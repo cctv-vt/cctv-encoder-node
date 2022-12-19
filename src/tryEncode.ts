@@ -45,6 +45,7 @@ export function tryEncode(queue: Queue, currentEncode: ApiVideo, config: ConfigT
 		try {
 			fluent(currentFile.location)
 				.screenshots({
+					size: '960x540',
 					timestamps: config.encode.thumbnailTimestamps || defaultConfig.encode.thumbnailTimestamps,
 					filename: `${outputFolder}/${currentFile.programName}/${currentFile.programName}.%i.jpg`,
 				})
@@ -81,7 +82,7 @@ export function tryEncode(queue: Queue, currentEncode: ApiVideo, config: ConfigT
 			reject(error);
 		}
 	});
-	Promise.all([videoEncode, thumbnailEncode, thumbnailEncodeSmall]).then(() => {
+	Promise.all([thumbnailEncode, thumbnailEncodeSmall, videoEncode]).then(() => {
 		currentEncode.clear();
 		currentEncode.progressClear();
 		logger.info(`Encoder: all ffmpeg processes for ${currentFile.programName} have completed`);
