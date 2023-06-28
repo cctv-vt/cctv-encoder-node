@@ -28,7 +28,7 @@ export async function uploadFolder(folder: string, videoFile: VideoFile, current
 				let destination: string;
 				if (videoFile.date) {
 					const {date, programName} = videoFile;
-					destination = `cctv/library/${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${programName}/${file}`;
+					destination = `cctv/library/${date.getUTCFullYear()}/${String(date.getUTCMonth() + 1).padStart(2, '0')}/${programName}/${file}`;
 				}
 
 				const onUploadProgress = (ev: any): void => {

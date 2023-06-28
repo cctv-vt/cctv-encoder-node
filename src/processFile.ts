@@ -20,14 +20,14 @@ export const processFile = async (path: string): Promise<VideoFile> => {
 					// If the program name is valid contruct the date
 					logger.info(`File Data: ${info.location} passed regexp`);
 					const dateString = info.programName.split('_F_')[1];
-					const year = dateString.slice(4, dateString.length);
-					const month = dateString.slice(0, 2);
-					const day = dateString.slice(2, 4);
+					const year = Number.parseInt(dateString.slice(4, dateString.length), 10);
+					const month = Number.parseInt(dateString.slice(0, 2), 10) - 1;
+					const day = Number.parseInt(dateString.slice(2, 4), 10);
 					// Construct date using YYYY-MM-D format
-					info.date = new Date(`${year}-${month}-${day}`);
-					if (info.date.getFullYear() < 1980) {
+					info.date = new Date(Date.UTC(year, month, day));
+					if (info.date.getUTCFullYear() < 1960) {
 						throw (new Error(`file ${info.location} returns a date with a year before 1980, rejecting`));
-					} else if (info.date.getFullYear() > (new Date().getFullYear() + 1)) {
+					} else if (info.date.getUTCFullYear() > (new Date().getUTCFullYear() + 4)) {
 						throw (new Error(`file ${info.location} returns a date with a year before 1980, rejecting`));
 					}
 				} else {
