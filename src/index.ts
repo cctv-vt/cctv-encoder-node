@@ -5,7 +5,7 @@ import {Queue} from './Queue';
 import {logger} from './logger';
 import {ApiVideo, initializeApi} from './api';
 import {processFile} from './processFile';
-import {uploadFolder} from './gcsUpload';
+import {gcsUploadFolder} from './gcsUpload';
 import {rejectFile} from './rejectFile';
 import {Config, defaultConfig} from './config';
 
@@ -74,14 +74,15 @@ const encode = () => {
 				encode();
 			} else {
 				console.log(video);
-				uploadFolder(`${outputFolder}/${video.programName}`, video, currentUpload, config)
+				gcsUploadFolder(`${outputFolder}/${video.programName}`, video, currentUpload, config)
 					.then((val: string) => {
 						currentUpload.clear();
-						logger.info(`Upload: finished uplooading ${val}`);
+						logger.info(`GCS Upload: finished uploading ${val}`);
 					})
 					.catch((err: Error) => {
 						console.log(err);
-						logger.error(`Upload: ${err.message}`);
+						rejectFile(video.location, `Upload Failed: \n ${JSON.stringify(err)}`);
+						logger.error(`GCS Upload: ${err.message}`);
 					});
 				encode();
 			}

@@ -12,12 +12,12 @@ import {Config} from './config';
 // TODO: Add to Config
 // TODO: Dont use this bucket for production!!!
 
-export async function uploadFolder(folder: string, videoFile: VideoFile, currentUpload: ApiVideo, config: ConfigType): Promise<unknown> {
+export async function gcsUploadFolder(folder: string, videoFile: VideoFile, currentUpload: ApiVideo, config: ConfigType): Promise<unknown> {
 	// Get Values From config
 	// bucketName is redefined every time allowing for changes during runtime
 	const keyFilename = config.gcsUpload.keyFile || defaultConfig.gcsUpload.keyFile;
 	const bucketName = config.gcsUpload.bucketName || defaultConfig.gcsUpload.bucketName;
-	logger.info(`Upload: Google bucket set to ${bucketName}`);
+	logger.info(`GCS Upload: Google bucket set to ${bucketName}`);
 	const storage = new Storage({keyFilename});
 	return new Promise((resolve, reject) => {
 		const fileUploads = [];
@@ -47,7 +47,7 @@ export async function uploadFolder(folder: string, videoFile: VideoFile, current
 					.catch(reject);
 			}));
 		});
-		logger.info(`Upload: Uploading ${fileUploads.length} files from ${videoFile.programName}`);
+		logger.info(`GCS Upload: Uploading ${fileUploads.length} files from ${videoFile.programName}`);
 		Promise.all(fileUploads)
 			.then(() => {
 				currentUpload.progressClear();
