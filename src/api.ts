@@ -75,7 +75,7 @@ export class ApiVideo extends EventEmitter {
 	}
 }
 
-export const initializeApi = (currentEncode: ApiVideo, currentUpload: ApiVideo, queue: Queue) => {
+export const initializeApi = (currentEncode: ApiVideo, currentGcsUpload: ApiVideo, queue: Queue) => {
 	const app = express();
 	app.get('/api/encode', (_req, res) => {
 		res.send({
@@ -84,10 +84,10 @@ export const initializeApi = (currentEncode: ApiVideo, currentUpload: ApiVideo, 
 		});
 	});
 
-	app.get('/api/upload', (_req, res) => {
+	app.get('/api/gcsupload', (_req, res) => {
 		res.send({
-			video: currentUpload.read(),
-			progress: currentUpload.progressRead(),
+			video: currentGcsUpload.read(),
+			progress: currentGcsUpload.progressRead(),
 		});
 	});
 
@@ -117,7 +117,7 @@ export const initializeApi = (currentEncode: ApiVideo, currentUpload: ApiVideo, 
 			}));
 		});
 
-		currentUpload.on('update', (currentUpload: VideoFile) => {
+		currentGcsUpload.on('update', (currentUpload: VideoFile) => {
 			ws.send(JSON.stringify({
 				message: 'currentUpload',
 				data: currentUpload,
@@ -131,7 +131,7 @@ export const initializeApi = (currentEncode: ApiVideo, currentUpload: ApiVideo, 
 			}));
 		});
 
-		currentUpload.on('progress', (uploadProgress: Progress) => {
+		currentGcsUpload.on('progress', (uploadProgress: Progress) => {
 			ws.send(JSON.stringify({
 				message: 'currentUploadProgress',
 				data: uploadProgress,

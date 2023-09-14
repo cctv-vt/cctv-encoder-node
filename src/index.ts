@@ -19,7 +19,7 @@ const currentEncode: ApiVideo = new ApiVideo({
 	programName: '',
 });
 
-const currentUpload: ApiVideo = new ApiVideo({
+const currentGcsUpload: ApiVideo = new ApiVideo({
 	location: '',
 	programName: '',
 });
@@ -74,9 +74,9 @@ const encode = () => {
 				encode();
 			} else {
 				console.log(video);
-				gcsUploadFolder(`${outputFolder}/${video.programName}`, video, currentUpload, config)
+				gcsUploadFolder(`${outputFolder}/${video.programName}`, video, currentGcsUpload, config)
 					.then((val: string) => {
-						currentUpload.clear();
+						currentGcsUpload.clear();
 						logger.info(`GCS Upload: finished uploading ${val}`);
 					})
 					.catch((err: Error) => {
@@ -108,5 +108,5 @@ encode();
 
 // ANCHOR: API
 
-initializeApi(currentEncode, currentUpload, encodeQueue);
+initializeApi(currentEncode, currentGcsUpload, encodeQueue);
 

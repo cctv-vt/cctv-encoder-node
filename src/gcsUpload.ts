@@ -9,10 +9,7 @@ import type {ConfigType} from './config';
 import {defaultConfig} from './config';
 import {Config} from './config';
 
-// TODO: Add to Config
-// TODO: Dont use this bucket for production!!!
-
-export async function gcsUploadFolder(folder: string, videoFile: VideoFile, currentUpload: ApiVideo, config: ConfigType): Promise<unknown> {
+export async function gcsUploadFolder(folder: string, videoFile: VideoFile, currentUpload: ApiVideo, config: ConfigType): Promise<string> {
 	// Get Values From config
 	// bucketName is redefined every time allowing for changes during runtime
 	const keyFilename = config.gcsUpload.keyFile || defaultConfig.gcsUpload.keyFile;
@@ -27,7 +24,8 @@ export async function gcsUploadFolder(folder: string, videoFile: VideoFile, curr
 			fileUploads.push(new Promise((resolve, reject) => {
 				let destination: string;
 				if (videoFile.date) {
-					const {date, programName} = videoFile;
+					const date = new Date(videoFile.date);
+					const {programName} = videoFile;
 					destination = `cctv/library/${date.getUTCFullYear()}/${String(date.getUTCMonth() + 1).padStart(2, '0')}/${programName}/${file}`;
 				}
 
