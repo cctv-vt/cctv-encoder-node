@@ -8,6 +8,7 @@ import {processFile} from './processFile';
 import {gcsUploadFolder} from './gcsUpload';
 import {rejectFile} from './rejectFile';
 import {Config, defaultConfig} from './config';
+import {s3Upload} from './s3Upload';
 
 const config = new Config().print();
 console.log(config);
@@ -20,6 +21,11 @@ const currentEncode: ApiVideo = new ApiVideo({
 });
 
 const currentGcsUpload: ApiVideo = new ApiVideo({
+	location: '',
+	programName: '',
+});
+
+const currentS3Upload: ApiVideo = new ApiVideo({
 	location: '',
 	programName: '',
 });
@@ -74,15 +80,25 @@ const encode = () => {
 				encode();
 			} else {
 				console.log(video);
-				gcsUploadFolder(`${outputFolder}/${video.programName}`, video, currentGcsUpload, config)
-					.then((val: string) => {
-						currentGcsUpload.clear();
-						logger.info(`GCS Upload: finished uploading ${val}`);
+				// GcsUploadFolder(`${outputFolder}/${video.programName}`, video, currentGcsUpload, config)
+				// 	.then((val: string) => {
+				// 		currentGcsUpload.clear();
+				// 		logger.info(`GCS Upload: finished uploading ${val}`);
+				// 	})
+				// 	.catch((err: Error) => {
+				// 		console.log(err);
+				// 		rejectFile(video.location, `Upload Failed: \n ${JSON.stringify(err)}`);
+				// 		logger.error(`GCS Upload: ${err.message}`);
+				// 	});
+				s3Upload(`${outputFolder}/${video.programName}`, video, currentS3Upload, config)
+					.then(val => {
+						currentS3Upload.clear();
+						logger.info(`S3 Upload: finished uploading ${val}`);
 					})
 					.catch((err: Error) => {
 						console.log(err);
 						rejectFile(video.location, `Upload Failed: \n ${JSON.stringify(err)}`);
-						logger.error(`GCS Upload: ${err.message}`);
+						logger.error(`S3 Upload: ${err.message}`);
 					});
 				encode();
 			}
@@ -109,4 +125,3 @@ encode();
 // ANCHOR: API
 
 initializeApi(currentEncode, currentGcsUpload, encodeQueue);
-

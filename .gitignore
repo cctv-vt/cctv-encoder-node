@@ -11,3 +11,4 @@ build
 
 config.json
 key.json
+s3Config.json
