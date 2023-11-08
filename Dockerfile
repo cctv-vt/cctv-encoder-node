@@ -1,9 +1,8 @@
-FROM node:16-bullseye
+FROM node:16-alpine
 
 WORKDIR /app
 
-RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-     && apt-get -y install --no-install-recommends ffmpeg
+RUN apk update && apk add ffmpeg
 
 COPY . .
 
