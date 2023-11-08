@@ -64,12 +64,12 @@ const checkCopy = async (path: string): Promise<boolean> => new Promise((resolve
 			.then(stats => {
 				if (!prevMtime) {
 					prevMtime = stats.mtimeMs;
-					setTimeout(st, 1000);
+					setTimeout(st, 2000);
 				} else if (stats.mtimeMs === prevMtime) {
 					resolve(true);
 				} else {
 					prevMtime = stats.mtimeMs;
-					setTimeout(st, 1000);
+					setTimeout(st, 2000);
 				}
 			})
 			.catch((err: Error) => {
